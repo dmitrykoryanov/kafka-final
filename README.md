@@ -19,45 +19,17 @@
 
 ## Схема
 
-```mermaid
-flowchart LR
-    file[data/products.json] -->|"shop-load (SHOP API)"| sp
-    ban["ban-add / ban-remove"] --> bp
+![Архитектура платформы](docs/architecture.svg)
 
-    subgraph primary ["Основной кластер: 3 брокера, TLS, ACL"]
-        sp[(shop-products)]
-        bp[(banned-products)]
-        p[(products)]
-        cr[(client-requests)]
-    end
+Как идут данные:
 
-    sp --> filter[Фильтр Kafka Streams]
-    bp -->|GlobalKTable| filter
-    filter -->|только разрешённые| p
-    p --> connect[Kafka Connect] --> jsonl[storage/products.jsonl]
-    p --> loader[Загрузка каталога] --> pg[(PostgreSQL)]
-    search["search (CLIENT API)"] -->|поиск| pg
-    search -->|запрос клиента| cr
-    search -->|запрос клиента| pg
-    p --> mm2[Mirror Maker 2]
-    cr --> mm2
-
-    subgraph secondary ["Второй кластер: 1 брокер"]
-        pp[(primary.products)]
-        pcr[(primary.client-requests)]
-        rec[(recommendations)]
-    end
-
-    mm2 --> pp
-    mm2 --> pcr
-    pp --> spark[Spark]
-    pcr --> spark
-    spark <--> hdfs[(HDFS /datalake)]
-    spark --> rec
-    rec --> recommend["recommend (CLIENT API)"]
-```
-
-Prometheus собирает метрики всех брокеров обоих кластеров (JMX Exporter), Grafana показывает их на дашборде, Alertmanager рассылает оповещения о сбоях по почте (почтовый сервер для проверки — Mailpit).
+1. SHOP API отправляет товары магазинов в топик `shop-products`. Список запрещённых товаров хранится в топике `banned-products`, его меняют команды `ban-add` и `ban-remove`.
+2. Фильтр Kafka Streams сверяет каждый товар со списком запрещённых и пропускает в топик `products` только разрешённые.
+3. Из `products` товары попадают в файл `storage/products.jsonl` (Kafka Connect) и в каталог PostgreSQL (загрузка каталога), по которому ищет CLIENT API.
+4. CLIENT API записывает каждый запрос клиента в топик `client-requests` и в PostgreSQL.
+5. Mirror Maker 2 копирует `products` и `client-requests` во второй кластер: там это `primary.products` и `primary.client-requests`.
+6. Spark раз в 30 секунд переносит эти данные в HDFS, считает рекомендации и пишет их в топик `recommendations`, откуда их читает CLIENT API.
+7. Prometheus собирает метрики всех брокеров обоих кластеров через JMX Exporter, Grafana показывает их на дашборде, Alertmanager отправляет письма о сбоях в Mailpit.
 
 ## Что реализовано
 
