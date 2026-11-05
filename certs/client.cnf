@@ -1,0 +1,20 @@
+# Параметры клиентского сертификата. Имя клиента берётся из переменной окружения CN (CN=shop-api openssl ...).
+# Брокер превращает CN в имя пользователя Kafka: CN=shop-api -> User:shop-api
+[ req ]
+prompt = no
+distinguished_name = dn
+default_md = sha256
+req_extensions = v3_req
+
+[ dn ]
+countryName = RU
+organizationName = Yandex
+organizationalUnitName = Practice
+localityName = Moscow
+commonName = $ENV::CN
+
+[ v3_req ]
+subjectKeyIdentifier = hash
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth

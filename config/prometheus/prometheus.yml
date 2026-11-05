@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+rule_files:
+  - alert-rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+scrape_configs:
+  # JMX Exporter работает внутри каждого брокера (Java-агент, порт 7071). Если брокер упал,
+  # цель становится недоступной (up == 0), на этом построен алерт KafkaBrokerDown
+  - job_name: kafka
+    static_configs:
+      - targets: [ kafka1:7071, kafka2:7071, kafka3:7071 ]
+        labels:
+          cluster: primary
+      - targets: [ kafka-b:7071 ]
+        labels:
+          cluster: secondary
+
+  - job_name: prometheus
+    static_configs:
+      - targets: [ localhost:9090 ]

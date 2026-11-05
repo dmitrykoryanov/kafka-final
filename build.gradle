@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.2'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.dmitrykoryanov.kafka'
+version = '0.0.1-SNAPSHOT'
+description = 'kafka-final'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.apache.kafka:kafka-clients'
+    implementation 'org.apache.kafka:kafka-streams'
+    implementation 'tools.jackson.core:jackson-databind'
+    runtimeOnly 'org.postgresql:postgresql'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.apache.kafka:kafka-streams-test-utils'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Один исполняемый jar с постоянным именем: его запускают с хоста и монтируют в контейнер kafka-setup
+bootJar {
+    archiveFileName = 'kafka-final.jar'
+}
+
+jar {
+    enabled = false
+}
+
+// Консольное приложение читает команды со стандартного ввода
+bootRun {
+    standardInput = System.in
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

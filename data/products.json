@@ -1,0 +1,269 @@
+[
+  {
+    "product_id": "12345",
+    "name": "Умные часы XYZ",
+    "description": "Умные часы с функцией мониторинга здоровья, GPS и уведомлениями.",
+    "price": { "amount": 4999.99, "currency": "RUB" },
+    "category": "Электроника",
+    "brand": "XYZ",
+    "stock": { "available": 150, "reserved": 20 },
+    "sku": "XYZ-12345",
+    "tags": ["умные часы", "гаджеты", "технологии"],
+    "images": [
+      { "url": "https://example.com/images/product1.jpg", "alt": "Умные часы XYZ - вид спереди" },
+      { "url": "https://example.com/images/product1_side.jpg", "alt": "Умные часы XYZ - вид сбоку" }
+    ],
+    "specifications": { "weight": "50g", "dimensions": "42mm x 36mm x 10mm", "battery_life": "24 hours", "water_resistance": "IP68" },
+    "created_at": "2023-10-01T12:00:00Z",
+    "updated_at": "2023-10-10T15:30:00Z",
+    "index": "products",
+    "store_id": "store_001"
+  },
+  {
+    "product_id": "12346",
+    "name": "Смартфон Nova 12",
+    "description": "Смартфон с экраном 6,5 дюйма, тройной камерой и NFC.",
+    "price": { "amount": 29990.00, "currency": "RUB" },
+    "category": "Электроника",
+    "brand": "Nova",
+    "stock": { "available": 80, "reserved": 5 },
+    "sku": "NOVA-12346",
+    "tags": ["смартфон", "гаджеты", "связь"],
+    "images": [
+      { "url": "https://example.com/images/product2.jpg", "alt": "Смартфон Nova 12 - вид спереди" }
+    ],
+    "specifications": { "weight": "185g", "dimensions": "160mm x 75mm x 8mm", "battery_life": "36 hours", "water_resistance": "IP54" },
+    "created_at": "2023-09-15T09:00:00Z",
+    "updated_at": "2023-10-12T10:00:00Z",
+    "index": "products",
+    "store_id": "store_001"
+  },
+  {
+    "product_id": "12347",
+    "name": "Беспроводные наушники SoundPro",
+    "description": "Наушники с активным шумоподавлением и зарядным кейсом.",
+    "price": { "amount": 7490.00, "currency": "RUB" },
+    "category": "Электроника",
+    "brand": "SoundPro",
+    "stock": { "available": 200, "reserved": 12 },
+    "sku": "SP-12347",
+    "tags": ["наушники", "музыка", "гаджеты"],
+    "images": [
+      { "url": "https://example.com/images/product3.jpg", "alt": "Наушники SoundPro в кейсе" }
+    ],
+    "specifications": { "weight": "48g", "dimensions": "60mm x 45mm x 25mm", "battery_life": "30 hours", "water_resistance": "IPX4" },
+    "created_at": "2023-08-20T11:00:00Z",
+    "updated_at": "2023-10-05T08:15:00Z",
+    "index": "products",
+    "store_id": "store_002"
+  },
+  {
+    "product_id": "12348",
+    "name": "Ноутбук AirBook 14",
+    "description": "Лёгкий ноутбук с экраном 14 дюймов, 16 ГБ памяти и SSD на 512 ГБ.",
+    "price": { "amount": 74990.00, "currency": "RUB" },
+    "category": "Электроника",
+    "brand": "AirBook",
+    "stock": { "available": 25, "reserved": 3 },
+    "sku": "AB-12348",
+    "tags": ["ноутбук", "компьютеры", "работа"],
+    "images": [
+      { "url": "https://example.com/images/product4.jpg", "alt": "Ноутбук AirBook 14 в открытом виде" }
+    ],
+    "specifications": { "weight": "1250g", "dimensions": "312mm x 221mm x 15mm", "battery_life": "12 hours", "water_resistance": "нет" },
+    "created_at": "2023-07-01T10:00:00Z",
+    "updated_at": "2023-10-01T09:30:00Z",
+    "index": "products",
+    "store_id": "store_002"
+  },
+  {
+    "product_id": "12349",
+    "name": "Фитнес-браслет XYZ Band",
+    "description": "Браслет с пульсометром, шагомером и мониторингом сна.",
+    "price": { "amount": 2490.00, "currency": "RUB" },
+    "category": "Электроника",
+    "brand": "XYZ",
+    "stock": { "available": 300, "reserved": 15 },
+    "sku": "XYZ-12349",
+    "tags": ["фитнес", "здоровье", "гаджеты"],
+    "images": [
+      { "url": "https://example.com/images/product5.jpg", "alt": "Фитнес-браслет XYZ Band" }
+    ],
+    "specifications": { "weight": "25g", "dimensions": "40mm x 18mm x 11mm", "battery_life": "14 days", "water_resistance": "IP68" },
+    "created_at": "2023-06-10T14:00:00Z",
+    "updated_at": "2023-10-08T16:45:00Z",
+    "index": "products",
+    "store_id": "store_001"
+  },
+  {
+    "product_id": "12350",
+    "name": "Электронная сигарета VapeMax",
+    "description": "Электронная система нагревания с картриджами.",
+    "price": { "amount": 1990.00, "currency": "RUB" },
+    "category": "Электроника",
+    "brand": "VapeMax",
+    "stock": { "available": 500, "reserved": 0 },
+    "sku": "VM-12350",
+    "tags": ["вейп", "курение"],
+    "images": [
+      { "url": "https://example.com/images/product6.jpg", "alt": "Электронная сигарета VapeMax" }
+    ],
+    "specifications": { "weight": "40g", "dimensions": "110mm x 25mm x 15mm", "battery_life": "2 days", "water_resistance": "нет" },
+    "created_at": "2023-10-02T12:00:00Z",
+    "updated_at": "2023-10-02T12:00:00Z",
+    "index": "products",
+    "store_id": "store_003"
+  },
+  {
+    "product_id": "12351",
+    "name": "Кофемашина Barista One",
+    "description": "Автоматическая кофемашина с капучинатором и встроенной кофемолкой.",
+    "price": { "amount": 24990.00, "currency": "RUB" },
+    "category": "Бытовая техника",
+    "brand": "Barista",
+    "stock": { "available": 40, "reserved": 2 },
+    "sku": "BAR-12351",
+    "tags": ["кофе", "кухня", "техника для дома"],
+    "images": [
+      { "url": "https://example.com/images/product7.jpg", "alt": "Кофемашина Barista One" }
+    ],
+    "specifications": { "weight": "7500g", "dimensions": "240mm x 440mm x 360mm", "power": "1450 W", "water_tank": "1.8 l" },
+    "created_at": "2023-05-05T10:00:00Z",
+    "updated_at": "2023-09-30T12:00:00Z",
+    "index": "products",
+    "store_id": "store_002"
+  },
+  {
+    "product_id": "12352",
+    "name": "Робот-пылесос CleanBot",
+    "description": "Робот-пылесос с влажной уборкой и построением карты помещений.",
+    "price": { "amount": 19990.00, "currency": "RUB" },
+    "category": "Бытовая техника",
+    "brand": "CleanBot",
+    "stock": { "available": 60, "reserved": 4 },
+    "sku": "CB-12352",
+    "tags": ["уборка", "техника для дома", "умный дом"],
+    "images": [
+      { "url": "https://example.com/images/product8.jpg", "alt": "Робот-пылесос CleanBot" }
+    ],
+    "specifications": { "weight": "3200g", "dimensions": "350mm x 350mm x 95mm", "battery_life": "150 minutes", "dust_container": "0.5 l" },
+    "created_at": "2023-04-12T09:00:00Z",
+    "updated_at": "2023-10-03T11:20:00Z",
+    "index": "products",
+    "store_id": "store_003"
+  },
+  {
+    "product_id": "12353",
+    "name": "Электрочайник AquaHeat",
+    "description": "Стеклянный чайник с подсветкой и поддержанием температуры.",
+    "price": { "amount": 2290.00, "currency": "RUB" },
+    "category": "Бытовая техника",
+    "brand": "AquaHeat",
+    "stock": { "available": 120, "reserved": 6 },
+    "sku": "AH-12353",
+    "tags": ["кухня", "чай", "техника для дома"],
+    "images": [
+      { "url": "https://example.com/images/product9.jpg", "alt": "Электрочайник AquaHeat" }
+    ],
+    "specifications": { "weight": "1100g", "dimensions": "220mm x 160mm x 250mm", "power": "2200 W", "volume": "1.7 l" },
+    "created_at": "2023-03-03T08:00:00Z",
+    "updated_at": "2023-09-25T13:10:00Z",
+    "index": "products",
+    "store_id": "store_003"
+  },
+  {
+    "product_id": "12354",
+    "name": "Беговые кроссовки RunFast",
+    "description": "Лёгкие кроссовки для бега с амортизирующей подошвой.",
+    "price": { "amount": 6990.00, "currency": "RUB" },
+    "category": "Спорт и отдых",
+    "brand": "RunFast",
+    "stock": { "available": 90, "reserved": 10 },
+    "sku": "RF-12354",
+    "tags": ["бег", "обувь", "спорт"],
+    "images": [
+      { "url": "https://example.com/images/product10.jpg", "alt": "Беговые кроссовки RunFast" }
+    ],
+    "specifications": { "weight": "280g", "material": "текстиль", "sizes": "38-46", "season": "лето" },
+    "created_at": "2023-02-20T10:00:00Z",
+    "updated_at": "2023-10-07T09:00:00Z",
+    "index": "products",
+    "store_id": "store_001"
+  },
+  {
+    "product_id": "12355",
+    "name": "Горный велосипед TrailRider",
+    "description": "Велосипед с алюминиевой рамой, 21 скоростью и дисковыми тормозами.",
+    "price": { "amount": 32990.00, "currency": "RUB" },
+    "category": "Спорт и отдых",
+    "brand": "TrailRider",
+    "stock": { "available": 15, "reserved": 1 },
+    "sku": "TR-12355",
+    "tags": ["велосипед", "спорт", "активный отдых"],
+    "images": [
+      { "url": "https://example.com/images/product11.jpg", "alt": "Горный велосипед TrailRider" }
+    ],
+    "specifications": { "weight": "14500g", "wheel_size": "27.5 inch", "frame": "алюминий", "gears": "21" },
+    "created_at": "2023-01-15T12:00:00Z",
+    "updated_at": "2023-09-20T17:00:00Z",
+    "index": "products",
+    "store_id": "store_002"
+  },
+  {
+    "product_id": "12356",
+    "name": "Коврик для йоги FlexMat",
+    "description": "Нескользящий коврик толщиной 6 мм с ремнём для переноски.",
+    "price": { "amount": 1490.00, "currency": "RUB" },
+    "category": "Спорт и отдых",
+    "brand": "FlexMat",
+    "stock": { "available": 250, "reserved": 8 },
+    "sku": "FM-12356",
+    "tags": ["йога", "фитнес", "спорт"],
+    "images": [
+      { "url": "https://example.com/images/product12.jpg", "alt": "Коврик для йоги FlexMat" }
+    ],
+    "specifications": { "weight": "900g", "dimensions": "1830mm x 610mm x 6mm", "material": "TPE" },
+    "created_at": "2023-03-25T15:00:00Z",
+    "updated_at": "2023-10-06T10:40:00Z",
+    "index": "products",
+    "store_id": "store_003"
+  },
+  {
+    "product_id": "12357",
+    "name": "Пневматический пистолет Striker",
+    "description": "Пневматический пистолет калибра 4,5 мм.",
+    "price": { "amount": 8990.00, "currency": "RUB" },
+    "category": "Спорт и отдых",
+    "brand": "Striker",
+    "stock": { "available": 30, "reserved": 0 },
+    "sku": "ST-12357",
+    "tags": ["стрельба", "пневматика"],
+    "images": [
+      { "url": "https://example.com/images/product13.jpg", "alt": "Пневматический пистолет Striker" }
+    ],
+    "specifications": { "weight": "800g", "caliber": "4.5 mm", "power": "3 J" },
+    "created_at": "2023-10-04T12:00:00Z",
+    "updated_at": "2023-10-04T12:00:00Z",
+    "index": "products",
+    "store_id": "store_003"
+  },
+  {
+    "product_id": "12358",
+    "name": "Книга «Apache Kafka. Потоковая обработка и анализ данных»",
+    "description": "Практическое руководство по Kafka, Kafka Streams и Kafka Connect.",
+    "price": { "amount": 1890.00, "currency": "RUB" },
+    "category": "Книги",
+    "brand": "Питер",
+    "stock": { "available": 70, "reserved": 3 },
+    "sku": "BK-12358",
+    "tags": ["книги", "программирование", "kafka"],
+    "images": [
+      { "url": "https://example.com/images/product14.jpg", "alt": "Обложка книги об Apache Kafka" }
+    ],
+    "specifications": { "weight": "650g", "pages": "640", "cover": "мягкая", "language": "русский" },
+    "created_at": "2023-02-01T10:00:00Z",
+    "updated_at": "2023-09-15T10:00:00Z",
+    "index": "products",
+    "store_id": "store_001"
+  }
+]

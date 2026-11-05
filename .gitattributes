@@ -1,0 +1,6 @@
+/gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary
+# Брокер читает пароль из файла командой cat: перевод строки CRLF испортил бы пароль
+certs/password.txt text eol=lf
+*.p12 binary

@@ -1,0 +1,4 @@
+rootProject.name = 'kafka-final'
+
+// Задача Spark (аналитика): отдельный jar, запускается в контейнере analytics
+include 'analytics'

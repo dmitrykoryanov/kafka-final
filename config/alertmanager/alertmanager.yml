@@ -1,0 +1,22 @@
+# Alertmanager отправляет оповещения по почте. Почтовый сервер — Mailpit из docker-compose.yml:
+# письма видны в его веб-интерфейсе http://localhost:8025, сами алерты — в http://localhost:9096
+global:
+  smtp_smarthost: mailpit:1025
+  smtp_from: alertmanager@kafka-final.local
+  # Mailpit принимает почту без TLS и авторизации
+  smtp_require_tls: false
+
+route:
+  receiver: email
+  # Отдельное письмо на каждый алерт и брокер
+  group_by: [ alertname, instance ]
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 1h
+
+receivers:
+  - name: email
+    email_configs:
+      - to: kafka-admin@kafka-final.local
+        # Письмо и о сбое, и о восстановлении
+        send_resolved: true

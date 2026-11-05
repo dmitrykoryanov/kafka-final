@@ -1,0 +1,10 @@
+apiVersion: 1
+
+# Дашборды загружаются из JSON-файлов каталога config/grafana/dashboards
+providers:
+  - name: kafka-final
+    type: file
+    folder: ""
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards

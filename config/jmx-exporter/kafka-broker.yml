@@ -1,0 +1,41 @@
+# Правила JMX Exporter: какие MBean брокера превращаются в метрики Prometheus.
+# Имена метрик — в нижнем регистре, например kafka_server_replicamanager_underreplicatedpartitions.
+# MBean, не подошедшие ни под одно правило, не экспортируются. Метрики JVM (jvm_*) агент отдаёт сам.
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+
+rules:
+  # Счётчики-«скорости» с двумя метками, например RequestsPerSec{request, version}
+  - pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+), (.+)=(.+)><>Count
+    name: kafka_$1_$2_$3_total
+    type: COUNTER
+    labels:
+      "$4": "$5"
+      "$6": "$7"
+  # С одной меткой, например BrokerTopicMetrics MessagesInPerSec{topic}
+  - pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+)><>Count
+    name: kafka_$1_$2_$3_total
+    type: COUNTER
+    labels:
+      "$4": "$5"
+  # Без меток: суммарные значения по брокеру, например MessagesInPerSec, IsrShrinksPerSec
+  - pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*><>Count
+    name: kafka_$1_$2_$3_total
+    type: COUNTER
+
+  # Значения (gauge) с двумя метками, например размер лога kafka.log<type=Log, name=Size, topic, partition>
+  - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+)><>Value
+    name: kafka_$1_$2_$3
+    type: GAUGE
+    labels:
+      "$4": "$5"
+      "$6": "$7"
+  - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+)><>Value
+    name: kafka_$1_$2_$3
+    type: GAUGE
+    labels:
+      "$4": "$5"
+  # Без меток, например UnderReplicatedPartitions, ActiveControllerCount, OfflinePartitionsCount
+  - pattern: kafka.(\w+)<type=(.+), name=(.+)><>Value
+    name: kafka_$1_$2_$3
+    type: GAUGE

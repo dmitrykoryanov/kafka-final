@@ -1,0 +1,398 @@
+# Аналитическая платформа маркетплейса «Покупай выгодно».
+# Перед запуском соберите приложение: ./gradlew build (сервисы kafka-setup и analytics берут готовые jar из build/libs).
+
+# Общие настройки брокеров основного кластера. Отличаются только номер брокера, порты и сертификат
+x-primary-broker: &primary-broker
+  image: confluentinc/cp-kafka:7.4.4
+  restart: on-failure
+  depends_on:
+    - zookeeper
+  networks:
+    - kafka-network
+
+x-primary-broker-env: &primary-broker-env
+  KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  # SSL — порт для обмена между брокерами и клиентов внутри Docker-сети, EXTERNAL — порт для клиентов с хоста
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: SSL:SSL,EXTERNAL:SSL
+  KAFKA_INTER_BROKER_LISTENER_NAME: SSL
+  # Хранилища ключей и файл с паролем лежат в ./certs, он смонтирован в /etc/kafka/secrets
+  KAFKA_SSL_KEYSTORE_TYPE: PKCS12
+  KAFKA_SSL_KEYSTORE_CREDENTIALS: password.txt
+  KAFKA_SSL_KEY_CREDENTIALS: password.txt
+  KAFKA_SSL_TRUSTSTORE_FILENAME: truststore.p12
+  KAFKA_SSL_TRUSTSTORE_TYPE: PKCS12
+  KAFKA_SSL_TRUSTSTORE_CREDENTIALS: password.txt
+  # Клиент обязан предъявить сертификат, подписанный нашим CA (mTLS)
+  KAFKA_SSL_CLIENT_AUTH: required
+  KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+  # ACL: всё, что не разрешено явно, запрещено. Имя пользователя = CN сертификата (CN=shop-api -> User:shop-api);
+  # $$ — экранирование $ для docker compose
+  KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+  KAFKA_SSL_PRINCIPAL_MAPPING_RULES: RULE:^CN=(.*?),.*$$/$$1/,DEFAULT
+  KAFKA_SUPER_USERS: User:kafka1;User:kafka2;User:kafka3;User:admin
+  # Топики создаёт только kafka-setup, случайные топики от клиентов не появятся
+  KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+  # Отказоустойчивость: 3 реплики, запись подтверждается, когда данные есть минимум на 2 репликах
+  KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+  KAFKA_MIN_INSYNC_REPLICAS: 2
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+  KAFKA_HEAP_OPTS: -Xms512m -Xmx512m
+  # JMX Exporter (входит в образ) подключается как Java-агент и отдаёт метрики Prometheus на порту 7071.
+  # EXTRA_ARGS читает только скрипт запуска брокера, поэтому утилиты вроде kafka-topics агент не запускают
+  EXTRA_ARGS: -name kafkaServer -loggc -javaagent:/usr/share/java/cp-base-new/jmx_prometheus_javaagent-0.18.0.jar=7071:/etc/jmx-exporter/kafka-broker.yml
+
+services:
+
+  # ---------------------------------------------------------------------------------------------------
+  # Основной кластер Kafka: 3 брокера, TLS, ACL. Сюда пишут SHOP API и CLIENT API
+  # ---------------------------------------------------------------------------------------------------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.4
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - kafka-network
+    volumes:
+      - data-zookeeper:/var/lib/zookeeper/data
+      - log-zookeeper:/var/lib/zookeeper/log
+
+  kafka1:
+    <<: *primary-broker
+    container_name: kafka1
+    hostname: kafka1
+    environment:
+      <<: *primary-broker-env
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENERS: SSL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: SSL://kafka1:9092,EXTERNAL://localhost:9093
+      KAFKA_SSL_KEYSTORE_FILENAME: kafka1/kafka1.p12
+    ports:
+      - "9093:9093"
+    volumes:
+      - data-kafka1:/var/lib/kafka/data
+      - ./certs:/etc/kafka/secrets:ro
+      - ./config/jmx-exporter:/etc/jmx-exporter:ro
+
+  kafka2:
+    <<: *primary-broker
+    container_name: kafka2
+    hostname: kafka2
+    environment:
+      <<: *primary-broker-env
+      KAFKA_BROKER_ID: 2
+      KAFKA_LISTENERS: SSL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: SSL://kafka2:9092,EXTERNAL://localhost:9094
+      KAFKA_SSL_KEYSTORE_FILENAME: kafka2/kafka2.p12
+    ports:
+      - "9094:9094"
+    volumes:
+      - data-kafka2:/var/lib/kafka/data
+      - ./certs:/etc/kafka/secrets:ro
+      - ./config/jmx-exporter:/etc/jmx-exporter:ro
+
+  kafka3:
+    <<: *primary-broker
+    container_name: kafka3
+    hostname: kafka3
+    environment:
+      <<: *primary-broker-env
+      KAFKA_BROKER_ID: 3
+      KAFKA_LISTENERS: SSL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9095
+      KAFKA_ADVERTISED_LISTENERS: SSL://kafka3:9092,EXTERNAL://localhost:9095
+      KAFKA_SSL_KEYSTORE_FILENAME: kafka3/kafka3.p12
+    ports:
+      - "9095:9095"
+    volumes:
+      - data-kafka3:/var/lib/kafka/data
+      - ./certs:/etc/kafka/secrets:ro
+      - ./config/jmx-exporter:/etc/jmx-exporter:ro
+
+  # Создаёт топики и ACL в обоих кластерах (Java, профиль setup) и завершается.
+  # Kafka Connect, Mirror Maker 2 и аналитика стартуют только после его успешного завершения
+  kafka-setup:
+    image: eclipse-temurin:17-jre
+    container_name: kafka-setup
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+      - kafka-b
+    working_dir: /app
+    command: >
+      java -jar build/libs/kafka-final.jar
+      --spring.profiles.active=setup
+      --platform.kafka.bootstrap-servers=kafka1:9092,kafka2:9092,kafka3:9092
+      --platform.backup-kafka.bootstrap-servers=kafka-b:9092
+    networks:
+      - kafka-network
+    volumes:
+      - ./build/libs:/app/build/libs:ro
+      - ./certs:/app/certs:ro
+
+  # ---------------------------------------------------------------------------------------------------
+  # Второй кластер Kafka: 1 брокер без TLS. Сюда Mirror Maker 2 дублирует данные, здесь работает аналитика
+  # ---------------------------------------------------------------------------------------------------
+  zookeeper-b:
+    image: confluentinc/cp-zookeeper:7.4.4
+    container_name: zookeeper-b
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - kafka-network
+    volumes:
+      - data-zookeeper-b:/var/lib/zookeeper/data
+      - log-zookeeper-b:/var/lib/zookeeper/log
+
+  kafka-b:
+    image: confluentinc/cp-kafka:7.4.4
+    container_name: kafka-b
+    hostname: kafka-b
+    restart: on-failure
+    depends_on:
+      - zookeeper-b
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-b:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-b:9092,EXTERNAL://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Топики создают kafka-setup и Mirror Maker 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_HEAP_OPTS: -Xms512m -Xmx512m
+      EXTRA_ARGS: -name kafkaServer -loggc -javaagent:/usr/share/java/cp-base-new/jmx_prometheus_javaagent-0.18.0.jar=7071:/etc/jmx-exporter/kafka-broker.yml
+    ports:
+      - "19092:19092"
+    networks:
+      - kafka-network
+    volumes:
+      - data-kafka-b:/var/lib/kafka/data
+      - ./config/jmx-exporter:/etc/jmx-exporter:ro
+
+  # Mirror Maker 2: копирует топики products и client-requests из основного кластера во второй
+  # (во втором кластере они называются primary.products и primary.client-requests)
+  mirror-maker:
+    image: confluentinc/cp-kafka:7.4.4
+    container_name: mirror-maker
+    restart: on-failure
+    depends_on:
+      kafka-setup:
+        condition: service_completed_successfully
+    command: connect-mirror-maker /etc/mirror-maker/mm2.properties
+    environment:
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+      KAFKA_LOG4J_OPTS: -Dlog4j.configuration=file:/etc/kafka/connect-log4j.properties
+    networks:
+      - kafka-network
+    volumes:
+      - ./config/mirror-maker:/etc/mirror-maker:ro
+      - ./certs:/etc/kafka/secrets:ro
+
+  # ---------------------------------------------------------------------------------------------------
+  # Хранилище для отладки: Kafka Connect пишет отфильтрованные товары (топик products) в файл storage/products.jsonl
+  # ---------------------------------------------------------------------------------------------------
+  kafka-connect:
+    image: confluentinc/cp-kafka:7.4.4
+    container_name: kafka-connect
+    restart: on-failure
+    depends_on:
+      kafka-setup:
+        condition: service_completed_successfully
+    command: connect-standalone /etc/kafka-connect/worker.properties /etc/kafka-connect/products-file-sink.properties
+    environment:
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    ports:
+      - "8083:8083"
+    networks:
+      - kafka-network
+    volumes:
+      - ./config/kafka-connect:/etc/kafka-connect:ro
+      - ./certs:/etc/kafka/secrets:ro
+      - ./storage:/data
+
+  # ---------------------------------------------------------------------------------------------------
+  # Хранилище CLIENT API: каталог товаров для поиска и журнал запросов клиентов
+  # ---------------------------------------------------------------------------------------------------
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: marketplace
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: marketplace
+    # На хосте порт 15432: стандартный 5432 часто занят локально установленным PostgreSQL
+    ports:
+      - "15432:5432"
+    networks:
+      - kafka-network
+    volumes:
+      - data-postgres:/var/lib/postgresql/data
+
+  # ---------------------------------------------------------------------------------------------------
+  # Аналитика: Data Lake на HDFS и задача Spark (Java), которая раз в 30 секунд
+  # переносит данные второго кластера в HDFS, считает рекомендации и пишет их в топик recommendations
+  # ---------------------------------------------------------------------------------------------------
+  namenode:
+    image: apache/hadoop:3.4.1
+    container_name: namenode
+    hostname: namenode
+    restart: unless-stopped
+    command: hdfs namenode
+    environment: &hadoop-env
+      # Образ превращает переменные ФАЙЛ.XML_свойство в конфигурацию Hadoop
+      CORE-SITE.XML_fs.defaultFS: hdfs://namenode:8020
+      HDFS-SITE.XML_dfs.namenode.rpc-address: namenode:8020
+      HDFS-SITE.XML_dfs.replication: 1
+      # Задача Spark работает от пользователя spark; проверка прав HDFS для учебного стенда не нужна
+      HDFS-SITE.XML_dfs.permissions.enabled: "false"
+      # Отформатировать файловую систему при первом запуске
+      ENSURE_NAMENODE_DIR: /tmp/hadoop-hadoop/dfs/name
+      ENSURE_NAMENODE_CLUSTERID: kafka-final
+      HADOOP_HEAPSIZE_MAX: 512m
+    ports:
+      - "9870:9870"
+    networks:
+      - kafka-network
+
+  datanode:
+    image: apache/hadoop:3.4.1
+    container_name: datanode
+    hostname: datanode
+    restart: unless-stopped
+    command: hdfs datanode
+    depends_on:
+      - namenode
+    environment: *hadoop-env
+    networks:
+      - kafka-network
+
+  analytics:
+    image: apache/spark:3.5.3-java17
+    container_name: analytics
+    restart: on-failure
+    depends_on:
+      kafka-setup:
+        condition: service_completed_successfully
+      namenode:
+        condition: service_started
+      datanode:
+        condition: service_started
+      mirror-maker:
+        condition: service_started
+    # Spark в local-режиме внутри контейнера; коннектор Spark к Kafka скачивается из Maven Central при старте
+    command: >
+      /opt/spark/bin/spark-submit
+      --master local[2]
+      --driver-memory 1g
+      --conf spark.jars.ivy=/tmp/.ivy2
+      --conf spark.hadoop.dfs.replication=1
+      --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3
+      --class com.dmitrykoryanov.kafka.analytics.RecommendationJob
+      /opt/analytics/analytics.jar
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-b:9092
+      HDFS_URL: hdfs://namenode:8020
+      INTERVAL_SECONDS: 30
+    ports:
+      - "4040:4040"
+    networks:
+      - kafka-network
+    volumes:
+      - ./analytics/build/libs:/opt/analytics:ro
+
+  # ---------------------------------------------------------------------------------------------------
+  # Мониторинг: Prometheus собирает метрики JMX Exporter со всех брокеров, Grafana их показывает,
+  # Alertmanager рассылает оповещения о сбоях по почте (почтовый сервер — Mailpit)
+  # ---------------------------------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.47.1
+    container_name: prometheus
+    restart: unless-stopped
+    # external-url — адрес для ссылок «Source» в письмах с оповещениями
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.external-url=http://localhost:9090
+    ports:
+      - "9090:9090"
+    networks:
+      - kafka-network
+    volumes:
+      - ./config/prometheus:/etc/prometheus:ro
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    restart: unless-stopped
+    depends_on:
+      - mailpit
+    # external-url — адрес для ссылок «View in Alertmanager» в письмах с оповещениями
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --web.external-url=http://localhost:9096
+    # Порт 9093 на хосте занят брокером kafka1
+    ports:
+      - "9096:9093"
+    networks:
+      - kafka-network
+    volumes:
+      - ./config/alertmanager:/etc/alertmanager:ro
+
+  # Почтовый сервер для проверки оповещений: Alertmanager отправляет письма на SMTP-порт 1025,
+  # полученные письма видны в веб-интерфейсе http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.33.0
+    container_name: mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+    networks:
+      - kafka-network
+
+  grafana:
+    image: grafana/grafana:9.5.12
+    container_name: grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: kafka
+      # Дашборд открывается без входа (только просмотр) и сразу на главной странице
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/kafka-cluster.json
+      # Своё имя cookie сессии: устаревший cookie grafana_session от другой Grafana на localhost:3000
+      # иначе ломает анонимный доступ (запросы панелей получают Unauthorized)
+      GF_AUTH_LOGIN_COOKIE_NAME: kafka_final_grafana_session
+    ports:
+      - "3000:3000"
+    networks:
+      - kafka-network
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+volumes:
+  data-zookeeper:
+  log-zookeeper:
+  data-kafka1:
+  data-kafka2:
+  data-kafka3:
+  data-zookeeper-b:
+  log-zookeeper-b:
+  data-kafka-b:
+  data-postgres:
+
+networks:
+  kafka-network:
+    driver: bridge

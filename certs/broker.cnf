@@ -1,0 +1,26 @@
+# Параметры сертификата брокера. Имя брокера берётся из переменной окружения CN (CN=kafka1 openssl ...)
+[ req ]
+prompt = no
+distinguished_name = dn
+default_md = sha256
+req_extensions = v3_req
+
+[ dn ]
+countryName = RU
+organizationName = Yandex
+organizationalUnitName = Practice
+localityName = Moscow
+commonName = $ENV::CN
+
+[ v3_req ]
+subjectKeyIdentifier = hash
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+# Брокер — сервер для клиентов и клиент для других брокеров
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName = @alt_names
+
+# Имена, по которым к брокеру подключаются: внутри Docker-сети (kafkaN) и с хоста (localhost)
+[ alt_names ]
+DNS.1 = $ENV::CN
+DNS.2 = localhost

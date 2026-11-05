@@ -1,0 +1,22 @@
+groups:
+  - name: kafka
+    rules:
+      # Брокер не отвечает: Prometheus не может забрать метрики его JMX Exporter (агент живёт в процессе брокера)
+      - alert: KafkaBrokerDown
+        expr: up{job="kafka"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Брокер {{ $labels.instance }} (кластер {{ $labels.cluster }}) недоступен"
+          description: "Prometheus не получает метрики брокера {{ $labels.instance }} больше 30 секунд."
+
+      # У части партиций реплик в ISR меньше, чем должно быть: обычно следствие падения брокера
+      - alert: KafkaUnderReplicatedPartitions
+        expr: sum by (cluster) (kafka_server_replicamanager_underreplicatedpartitions) > 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "В кластере {{ $labels.cluster }} есть недореплицированные партиции"
+          description: "Недореплицированных партиций: {{ $value }}."

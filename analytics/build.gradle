@@ -1,0 +1,23 @@
+plugins {
+    id 'java'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spark уже есть в образе apache/spark:3.5.3, поэтому в jar он не попадает.
+    // Коннектор spark-sql-kafka подключается при запуске через spark-submit --packages
+    compileOnly 'org.apache.spark:spark-sql_2.12:3.5.3'
+}
+
+jar {
+    archiveFileName = 'analytics.jar'
+}
